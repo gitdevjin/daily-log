@@ -13,6 +13,7 @@ import {
   CarouselPrevious,
 } from "../ui/carousel";
 import { useSession } from "@/store/session";
+import { useAlertModal, useOpenAlertModal } from "@/store/alert-modal";
 
 type Image = {
   file: File;
@@ -22,6 +23,8 @@ type Image = {
 export default function PostEditorModal() {
   const session = useSession();
   const { isOpen, close } = usePostEditorModal();
+  const openAlertModal = useOpenAlertModal();
+
   const { mutate: createPost, isPending: isCreatePostPending } = useCreatePost({
     onSuccess: () => {
       close();
@@ -39,6 +42,17 @@ export default function PostEditorModal() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCloseModal = () => {
+    if (content.trim() !== "" || images.length !== 0) {
+      openAlertModal({
+        title: "Are you sure you want to leave?",
+        description: "You’ll lose any content you’ve been writing",
+        onPositive: () => {
+          close();
+        },
+      });
+
+      return;
+    }
     close();
   };
 
