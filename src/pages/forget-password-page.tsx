@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRequestPwdResetEmail } from "@/hooks/mutations/use-request-pwd-reset-email";
+import { useRequestPwdResetEmail } from "@/hooks/mutations/auth/use-request-pwd-reset-email";
 import { useState } from "react";
 import { toast } from "sonner";
 

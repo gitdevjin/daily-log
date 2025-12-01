@@ -56,5 +56,5 @@ export const getRandomNickname = () => {
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const number = Math.floor(Math.random() * 100);
 
-  return `${adjective}${noun}${number}`;
+  return `${adjective} ${noun} ${number}`;
 };
