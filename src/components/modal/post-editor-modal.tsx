@@ -13,7 +13,7 @@ import {
   CarouselPrevious,
 } from "../ui/carousel";
 import { useSession } from "@/store/session";
-import { useAlertModal, useOpenAlertModal } from "@/store/alert-modal";
+import { useOpenAlertModal } from "@/store/alert-modal";
 
 type Image = {
   file: File;
@@ -40,6 +40,28 @@ export default function PostEditorModal() {
   const [images, setImages] = useState<Image[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
+    }
+  }, [content]);
+
+  useEffect(() => {
+    // Release Memory of Images
+    if (!isOpen) {
+      images.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
+      return;
+    }
+
+    textareaRef?.current?.focus();
+    setContent(""); // Reset Content when modal is closed
+    setImages([]);
+  }, [isOpen]);
 
   const handleCloseModal = () => {
     if (content.trim() !== "" || images.length !== 0) {
@@ -85,22 +107,9 @@ export default function PostEditorModal() {
         (prevImage) => prevImage.previewUrl !== image.previewUrl,
       ),
     );
+
+    URL.revokeObjectURL(image.previewUrl);
   };
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        textareaRef.current.scrollHeight + "px";
-    }
-  }, [content]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    textareaRef?.current?.focus();
-    setContent(""); // Reset Content when modal is closed
-    setImages([]);
-  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseModal}>
