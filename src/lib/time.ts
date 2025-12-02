@@ -9,7 +9,7 @@ export function formatTimeAgo(time: Date | string | number) {
   if (minDiff < 60) return `${minDiff} mins ago`;
 
   const hourDiff = Math.floor(minDiff / 60);
-  if (hourDiff < 60) return `${hourDiff} hours ago`;
+  if (hourDiff < 24) return `${hourDiff} hours ago`;
 
   const dayDiff = Math.floor(hourDiff / 24);
   return `${dayDiff} days ago`;
