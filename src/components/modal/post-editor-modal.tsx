@@ -14,6 +14,7 @@ import {
 } from "../ui/carousel";
 import { useSession } from "@/store/session";
 import { useOpenAlertModal } from "@/store/alert-modal";
+import { useUpdatePost } from "@/hooks/mutations/post/use-update-post";
 
 type Image = {
   file: File;
@@ -22,12 +23,23 @@ type Image = {
 
 export default function PostEditorModal() {
   const session = useSession();
-  const { isOpen, close } = usePostEditorModal();
+  const postEditorModal = usePostEditorModal();
   const openAlertModal = useOpenAlertModal();
 
   const { mutate: createPost, isPending: isCreatePostPending } = useCreatePost({
     onSuccess: () => {
-      close();
+      postEditorModal.actions.close();
+    },
+    onError: (error) => {
+      toast.error(error.message, {
+        position: "top-center",
+      });
+    },
+  });
+
+  const { mutate: updatePost, isPending: isUpdatePostPending } = useUpdatePost({
+    onSuccess: () => {
+      postEditorModal.actions.close();
     },
     onError: (error) => {
       toast.error(error.message, {
@@ -51,17 +63,23 @@ export default function PostEditorModal() {
 
   useEffect(() => {
     // Release Memory of Images
-    if (!isOpen) {
+    if (!postEditorModal.isOpen) {
       images.forEach((image) => {
         URL.revokeObjectURL(image.previewUrl);
       });
       return;
     }
 
+    if (postEditorModal.type === "CREATE") {
+      setContent(""); // Reset Content when modal is closed
+      setImages([]);
+    } else {
+      setContent(postEditorModal.content);
+      setImages([]);
+    }
+
     textareaRef?.current?.focus();
-    setContent(""); // Reset Content when modal is closed
-    setImages([]);
-  }, [isOpen]);
+  }, [postEditorModal.isOpen]);
 
   const handleCloseModal = () => {
     if (content.trim() !== "" || images.length !== 0) {
@@ -69,22 +87,32 @@ export default function PostEditorModal() {
         title: "Are you sure you want to leave?",
         description: "You’ll lose any content you’ve been writing",
         onPositive: () => {
-          close();
+          postEditorModal.actions.close();
         },
       });
 
       return;
     }
-    close();
+    postEditorModal.actions.close();
   };
 
-  const handleCreatePost = () => {
+  const handleSavePostClick = () => {
     if (content.trim() === "") return;
-    createPost({
-      content,
-      images: images.map((image) => image.file),
-      userId: session!.user.id,
-    });
+    if (!postEditorModal.isOpen) return;
+
+    if (postEditorModal.type === "CREATE") {
+      createPost({
+        content,
+        images: images.map((image) => image.file),
+        userId: session!.user.id,
+      });
+    } else {
+      if (content.trim() === postEditorModal.content) return;
+      updatePost({
+        id: postEditorModal.postId,
+        content,
+      });
+    }
   };
 
   const handleSelectImages = (e: ChangeEvent<HTMLInputElement>) => {
@@ -111,12 +139,14 @@ export default function PostEditorModal() {
     URL.revokeObjectURL(image.previewUrl);
   };
 
+  const isPending = isCreatePostPending || isUpdatePostPending;
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+    <Dialog open={postEditorModal.isOpen} onOpenChange={handleCloseModal}>
       <DialogContent className="max-h-[90vh]">
         <DialogTitle>Create Post</DialogTitle>
         <textarea
-          disabled={isCreatePostPending}
+          disabled={isPending}
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -131,6 +161,24 @@ export default function PostEditorModal() {
           multiple
           hidden
         />
+        {postEditorModal.isOpen && postEditorModal.type === "EDIT" && (
+          <Carousel className="m-auto w-[88%] self-center">
+            <CarouselContent>
+              {postEditorModal.imageUrls?.map((url) => (
+                <CarouselItem key={url} className="basis-2/5">
+                  <div className="relative">
+                    <img
+                      src={url}
+                      alt=""
+                      className="h-full w-full rounded-sm object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        )}
+
         {images.length > 0 && (
           <Carousel className="m-auto w-[88%] self-center">
             <CarouselContent>
@@ -156,20 +204,23 @@ export default function PostEditorModal() {
             <CarouselNext />
           </Carousel>
         )}
+        {postEditorModal.isOpen && postEditorModal.type === "CREATE" && (
+          <Button
+            onClick={() => {
+              fileInputRef.current?.click();
+            }}
+            disabled={isPending}
+            variant={"outline"}
+            className="cursor-pointer"
+          >
+            <ImageIcon />
+            Add Image
+          </Button>
+        )}
+
         <Button
-          onClick={() => {
-            fileInputRef.current?.click();
-          }}
-          disabled={isCreatePostPending}
-          variant={"outline"}
-          className="cursor-pointer"
-        >
-          <ImageIcon />
-          Add Image
-        </Button>
-        <Button
-          disabled={isCreatePostPending}
-          onClick={handleCreatePost}
+          disabled={isPending}
+          onClick={handleSavePostClick}
           className="cursor-pointer"
         >
           Save
