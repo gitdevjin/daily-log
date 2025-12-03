@@ -12,12 +12,25 @@ import { formatTimeAgo } from "@/lib/time";
 import DeletePostButton from "./delete-post-button";
 import EditPostButton from "./edit-post-button";
 import { useSession } from "@/store/session";
+import { usePostByIdData } from "@/hooks/queries/use-post-by-id-data";
+import Loader from "../loader";
+import Fallback from "../fallback";
 
-export default function PostItem(post: Post) {
+export default function PostItem({ postId }: { postId: number }) {
   const session = useSession();
   const userId = session?.user.id;
 
+  const {
+    data: post,
+    error,
+    isPending,
+  } = usePostByIdData({ postId, type: "LIST" });
+
+  if (isPending) return <Loader />;
+  if (error) return <Fallback />;
+
   const isMine = userId === post.author_id;
+
   return (
     <div className="flex flex-col gap-4 border-b pb-8">
       {/* 1. 유저 정보, 수정/삭제 버튼 */}
